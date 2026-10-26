@@ -2,7 +2,9 @@
 
 함종의 역할과 장비, 함정사업 획득절차를 배우는 React·TypeScript·Vite 학습 웹입니다. 학습은 로그인·백엔드·실시간 AI 호출 없이 동작하며, 피드백은 외부 설문 서비스 Tally에 저장합니다.
 
-서비스: https://silbet.github.io/naval-acquisition-learning/
+서비스: https://kdww1106-star.github.io/naval-acquisition-learning/
+
+운영 저장소: https://github.com/kdww1106-star/naval-acquisition-learning · 소유자: `kdww1106-star`. [Silbet의 원본 저장소](https://github.com/Silbet/naval-acquisition-learning)를 Fork하여 코드와 변경 이력을 보존한 별도 운영본입니다. 이 저장소의 수정·배포와 공동운영자 초대는 본인 운영본에서 진행합니다. 원본과 수정 내용이 자동 동기화되는 것은 아닙니다.
 
 친구·후임 개발자에게 전달할 때는 [인수인계 안내](docs/HANDOFF.md)를 먼저 확인하세요. 최신 코드는 기본 브랜치 `main`에 있으며, `main` 변경이 GitHub Pages에 자동 배포됩니다.
 
