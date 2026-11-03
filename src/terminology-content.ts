@@ -1058,6 +1058,9 @@ const evidenceTitles: Record<TermSource, string> = {
 const termById = new Map(
   terminologyDefinitions.map((entry) => [entry.id, entry.term]),
 );
+const definitionById = new Map(
+  terminologyDefinitions.map((entry) => [entry.id, entry]),
+);
 export const terminologyQuestions: Question[] = terminologyDefinitions.map(
   (entry) => {
     const reference = directReferences[entry.id] ?? entry;
@@ -1078,6 +1081,16 @@ export const terminologyQuestions: Question[] = terminologyDefinitions.map(
       ] as Question["options"],
       answerIndex: 0,
       explanation: entry.explanation,
+      optionExplanations: [entry.id, ...entry.confusions].map((id) => {
+        const definition = definitionById.get(id)!;
+        const evidence = directReferences[id] ?? definition;
+        return {
+          option: definition.term,
+          explanation: definition.explanation,
+          sourceId: evidence.sourceId,
+          citation: `${evidenceTitles[evidence.sourceId]} ${evidence.citation}`,
+        };
+      }),
       sourceId: reference.sourceId,
       citation: /^제\d/.test(reference.citation)
         ? `${evidenceTitles[reference.sourceId]} ${reference.citation}`

@@ -1,3 +1,4 @@
+import { confirmAndContinue } from "../helpers";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { terminologyDefinitions } from "../../src/terminology-content";
@@ -54,9 +55,7 @@ test("마지막 용어 단원에서 용어만 선택하고 복원·채점·근�
       index,
     );
     await page.getByRole("radio").nth(wrong).check();
-    await page
-      .getByRole("button", { name: index === 4 ? "답안 제출" : "다음 문제" })
-      .click();
+    await confirmAndContinue(page);
   }
   await expect(page.locator(".score-mark strong")).toHaveText("0");
   await page.getByRole("link", { name: "오답 복습하기" }).click();

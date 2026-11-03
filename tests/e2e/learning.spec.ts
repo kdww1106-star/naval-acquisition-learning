@@ -1,3 +1,4 @@
+import { confirmAndContinue } from "../helpers";
 import { test, expect, type Page } from "@playwright/test";
 async function start(page: Page, count = 5) {
   await page.goto("/setup/destroyer");
@@ -20,12 +21,10 @@ test("단원부터 채점, 오답 복습과 재도전, 학습기록까지", asyn
       return (s.items[i].answerIndex + 1) % 4;
     }, i);
     await expect(
-      page.getByRole("button", { name: i === 4 ? "답안 제출" : "다음 문제" }),
+      page.getByRole("button", { name: "정답 확인", exact: true }),
     ).toBeDisabled();
     await page.getByRole("radio").nth(index).check();
-    await page
-      .getByRole("button", { name: i === 4 ? "답안 제출" : "다음 문제" })
-      .click();
+    await confirmAndContinue(page);
   }
   await expect(page).toHaveURL(/\/result$/);
   await expect(page.locator(".score-mark strong")).toHaveText("0");
@@ -47,7 +46,7 @@ test("단원부터 채점, 오답 복습과 재도전, 학습기록까지", asyn
 test("10문제 새로고침 복원, 종료 취소, 360px 넘침 없음", async ({ page }) => {
   await start(page, 10);
   await page.getByRole("radio").nth(2).check();
-  await page.getByRole("button", { name: "다음 문제" }).click();
+  await confirmAndContinue(page);
   const before = await page.evaluate(() =>
     sessionStorage.getItem("hamjeong.session.v2"),
   );
@@ -85,6 +84,8 @@ test("키보드 5문제 풀이", async ({ page }) => {
   for (let i = 0; i < 5; i++) {
     await page.locator(".question-panel h1").focus();
     await page.keyboard.press("1");
+    await page.keyboard.press("Enter");
+    await expect(page.locator(".answer-feedback")).toBeVisible();
     await page.keyboard.press("Enter");
   }
   await expect(page).toHaveURL(/\/result$/);

@@ -1,3 +1,4 @@
+import { confirmAndContinue } from "../helpers";
 import { test, expect } from "@playwright/test";
 
 test("Pages 하위 경로 자산, 직접 진입, 새로고침, 채점", async ({ page }) => {
@@ -15,7 +16,7 @@ test("Pages 하위 경로 자산, 직접 진입, 새로고침, 채점", async ({
   await page.getByRole("button", { name: "학습 시작하기" }).click();
   await expect(page).toHaveURL(/naval-acquisition-learning\/#\/quiz$/);
   await page.getByRole("radio").first().check();
-  await page.getByRole("button", { name: "다음 문제" }).click();
+  await confirmAndContinue(page);
   page.on("dialog", (dialog) => dialog.accept());
   await page.reload();
   await expect(page.locator(".question-number")).toHaveText("QUESTION 02");
@@ -24,9 +25,7 @@ test("Pages 하위 경로 자산, 직접 진입, 새로고침, 채점", async ({
       `QUESTION ${String(i + 1).padStart(2, "0")}`,
     );
     await page.getByRole("radio").first().check();
-    await page
-      .getByRole("button", { name: i === 4 ? "답안 제출" : "다음 문제" })
-      .click();
+    await confirmAndContinue(page);
   }
   await expect(page).toHaveURL(/#\/result$/);
   await expect(page.locator(".score-mark strong")).toBeVisible();
@@ -51,7 +50,7 @@ test("Pages 용어 퀴즈 직접 진입과 새로고침 복원", async ({ page }
   await expect(page.getByText("공통 업무 · 용어 퀴즈")).toBeVisible();
   await expect(page.getByRole("radio")).toHaveCount(4);
   await page.getByRole("radio").first().check();
-  await page.getByRole("button", { name: "다음 문제" }).click();
+  await confirmAndContinue(page);
   page.on("dialog", (dialog) => dialog.accept());
   await page.reload();
   await expect(page.locator(".question-number")).toHaveText("QUESTION 02");
@@ -72,9 +71,7 @@ test("Pages 공통 업무 직접 진입과 계약 상황형·근거 확인", asy
   await expect(page.getByText("공통 업무 · 실무 상황형")).toBeVisible();
   for (let i = 0; i < 5; i++) {
     await page.getByRole("radio").first().check();
-    await page
-      .getByRole("button", { name: i === 4 ? "답안 제출" : "다음 문제" })
-      .click();
+    await confirmAndContinue(page);
   }
   await page.getByRole("link", { name: /오답 복습하기|해설 확인하기/ }).click();
   await expect(page.locator(".work-steps").first()).toBeVisible();

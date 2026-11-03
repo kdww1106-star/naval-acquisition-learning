@@ -1,3 +1,4 @@
+import { confirmAndContinue } from "../helpers";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
@@ -52,9 +53,7 @@ test("함정·공통 카테고리 분리와 공통 상황형의 해설·근거·
       i,
     );
     await page.getByRole("radio").nth(wrong).check();
-    await page
-      .getByRole("button", { name: i === 4 ? "답안 제출" : "다음 문제" })
-      .click();
+    await confirmAndContinue(page);
   }
   await page.getByRole("link", { name: "오답 복습하기" }).click();
   await expect(page.locator(".review-card")).toHaveCount(5);
