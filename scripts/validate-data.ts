@@ -17,6 +17,21 @@ for (const q of questions) {
   if (prompts.has(q.prompt)) throw Error(`중복 질문 ${q.id}`);
   prompts.add(q.prompt);
   if (new Set(q.options).size !== 4) throw Error(`중복 보기 ${q.id}`);
+  if (
+    q.optionExplanations &&
+    (new Set(q.optionExplanations.map((entry) => entry.option)).size !== 4 ||
+      q.options.some(
+        (option) =>
+          !q.optionExplanations!.some((entry) => entry.option === option),
+      ))
+  )
+    throw Error(`보기 해설 매핑 오류 ${q.id}`);
+  if (
+    q.optionExplanations?.some(
+      (entry) => entry.sourceId && !Object.hasOwn(sources, entry.sourceId),
+    )
+  )
+    throw Error(`보기 해설 출처 오류 ${q.id}`);
   if (q.scenario && (!q.citation || !q.actionSteps || q.actionSteps.length < 2))
     throw Error(`상황형 근거·처리순서 누락 ${q.id}`);
   if (

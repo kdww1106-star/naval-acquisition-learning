@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { humanReviews, retiredIds } from "./reviews";
+import { explanationAdditions } from "./explanations";
 import { additionalRows, additionalSources } from "./content-expansion";
 import {
   businessQuestions,
@@ -218,6 +219,17 @@ export const questionSchema = z.object({
   ]),
   answerIndex: z.number().int().min(0).max(3),
   explanation: z.string().min(5),
+  optionExplanations: z
+    .array(
+      z.object({
+        option: z.string().min(1),
+        explanation: z.string().min(5),
+        sourceId: z.string().optional(),
+        citation: z.string().optional(),
+      }),
+    )
+    .length(4)
+    .optional(),
   sourceId: z.enum(
     Object.keys(sources) as [keyof typeof sources, ...(keyof typeof sources)[]],
   ),
@@ -943,6 +955,9 @@ export const questions: Question[] = [
   const review = humanReviews[q.id];
   return {
     ...q,
+    explanation: explanationAdditions[q.concept]
+      ? `${q.explanation}\n\n${explanationAdditions[q.concept]}`
+      : q.explanation,
     status:
       retiredIds.includes(q.id) ||
       (q.unitId === "common-process" && !q.id.startsWith("q-business-"))

@@ -1348,6 +1348,115 @@ footer,
   align-items: start;
   gap: 24px;
 }
+
+.answers:disabled .answer {
+  cursor: default;
+}
+.answer.answer-correct {
+  border: 2px solid #16766c;
+  padding: 17px 19px;
+  background: #edf8f5;
+}
+.answer.answer-incorrect {
+  border: 2px solid #b54731;
+  padding: 17px 19px;
+  background: #fff4ef;
+}
+.answer-state {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  color: #12675e;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.answer-incorrect .answer-state {
+  color: #a13b28;
+}
+.answer-feedback {
+  border-top: 1px solid #dce6eb;
+  margin-top: 30px;
+  padding-top: 26px;
+}
+.answer-feedback h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.25rem;
+  margin-bottom: 15px;
+}
+.feedback-correct {
+  color: #12675e;
+}
+.feedback-incorrect {
+  color: #a13b28;
+}
+.confirmed-answer {
+  line-height: 1.75;
+}
+.confirmed-answer strong {
+  color: #12675e;
+  margin-right: 10px;
+}
+.question-explanation h3 {
+  font-size: 1rem;
+  margin: 24px 0 10px;
+  color: #183d50;
+}
+.explanation-body p,
+.choice-comparison p {
+  line-height: 1.95;
+  margin: 10px 0 15px;
+  overflow-wrap: anywhere;
+}
+.choice-comparison {
+  padding-left: 16px;
+  border-left: 3px solid #bdd7d2;
+  margin-top: 22px;
+}
+.choice-comparison h4 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+.explanation-source {
+  margin-top: 24px;
+  padding-top: 2px;
+  border-top: 1px solid #dce6eb;
+}
+.explanation-source .source-link {
+  overflow-wrap: anywhere;
+}
+.source-date {
+  color: #536b7a;
+  font-size: 0.82rem;
+  line-height: 1.75;
+}
+.comparison-source {
+  font-size: 0.85rem;
+  line-height: 1.8;
+}
+.comparison-source a {
+  color: #00665e;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.comparison-source svg {
+  vertical-align: middle;
+}
+@media (max-width: 760px) {
+  .answer-state {
+    font-size: 0.75rem;
+  }
+  .answer.answer-correct,
+  .answer.answer-incorrect {
+    padding: 13px;
+  }
+  .answer-feedback {
+    padding-top: 20px;
+  }
+}
 .feedback-panel {
   min-width: 0;
   padding: 24px;

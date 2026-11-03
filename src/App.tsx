@@ -56,7 +56,11 @@ import {
   HISTORY_KEY,
   type Session,
   selectionPlan,
+  selectAnswer,
+  submitAnswer,
+  advanceQuestion,
 } from "./domain";
+import QuestionExplanation from "./QuestionExplanation";
 import { registerLearningTools } from "./webmcp";
 import FeedbackPage from "./FeedbackPage";
 const icons = {
@@ -481,7 +485,7 @@ function Setup() {
           학습 시작하기 <ArrowRight size={18} />
         </button>
         <p className="center hint">
-          점수는 마지막 문제를 제출한 뒤 확인할 수 있어요.
+          한 문제마다 정답과 해설·출처를 확인하고, 마지막에 총점을 확인해요.
         </p>
       </section>
     </div>
@@ -492,6 +496,8 @@ function Quiz() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const heading = useRef<HTMLHeadingElement>(null);
+  const feedbackHeading = useRef<HTMLHeadingElement>(null);
+  const submitted = !!session?.submitted[session.currentIndex];
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
       !!loadSession() &&
@@ -499,8 +505,9 @@ function Quiz() {
       currentLocation.pathname !== nextLocation.pathname,
   );
   useEffect(() => {
-    heading.current?.focus();
-  }, [session?.currentIndex]);
+    if (submitted) feedbackHeading.current?.focus();
+    else heading.current?.focus();
+  }, [session?.currentIndex, submitted]);
   useEffect(() => {
     const before = (e: BeforeUnloadEvent) => {
       if (!loadSession()?.completedAt) e.preventDefault();
@@ -514,22 +521,20 @@ function Quiz() {
       return false;
     }
     setSession(next);
+    setError("");
     return true;
   }
   function choose(i: number) {
     if (!session) return;
-    const answers = [...session.answers];
-    answers[session.currentIndex] = i;
-    change({ ...session, answers });
+    const next = selectAnswer(session, i);
+    if (next !== session) change(next);
   }
   function next() {
     if (!session || session.answers[session.currentIndex] === null) return;
-    if (session.currentIndex < session.items.length - 1)
-      change({ ...session, currentIndex: session.currentIndex + 1 });
-    else {
-      const done = { ...session, completedAt: new Date().toISOString() };
-      if (change(done)) {
-        recordHistory(done);
+    const next = submitted ? advanceQuestion(session) : submitAnswer(session);
+    if (next !== session && change(next)) {
+      if (next.completedAt) {
+        recordHistory(next);
         navigate("/result", { replace: true });
       }
     }
@@ -605,11 +610,11 @@ function Quiz() {
         <h1 ref={heading} tabIndex={-1}>
           {q.prompt}
         </h1>
-        <fieldset className="answers">
+        <fieldset className="answers" disabled={submitted}>
           <legend className="sr-only">답 선택</legend>
           {q.options.map((text, i) => (
             <label
-              className={`answer ${selected === i ? "selected" : ""}`}
+              className={`answer ${selected === i ? "selected" : ""} ${submitted && i === q.answerIndex ? "answer-correct" : ""} ${submitted && selected === i && i !== q.answerIndex ? "answer-incorrect" : ""}`}
               key={i}
             >
               <input
@@ -620,32 +625,76 @@ function Quiz() {
               />
               <span className="answer-index">{i + 1}</span>
               <span>{text}</span>
-              {selected === i && (
-                <CheckCircle2 size={20} className="answer-check" />
+              {submitted && i === q.answerIndex ? (
+                <span className="answer-state">
+                  <CheckCircle2 size={18} /> 정답
+                </span>
+              ) : submitted && selected === i ? (
+                <span className="answer-state">
+                  <X size={18} /> 나의 답
+                </span>
+              ) : (
+                selected === i && (
+                  <CheckCircle2 size={20} className="answer-check" />
+                )
               )}
             </label>
           ))}
         </fieldset>
+        {submitted && (
+          <section
+            className="answer-feedback"
+            aria-labelledby="answer-feedback-title"
+          >
+            <h2
+              id="answer-feedback-title"
+              ref={feedbackHeading}
+              tabIndex={-1}
+              className={
+                selected === q.answerIndex
+                  ? "feedback-correct"
+                  : "feedback-incorrect"
+              }
+            >
+              {selected === q.answerIndex ? (
+                <CheckCircle2 size={24} />
+              ) : (
+                <X size={24} />
+              )}
+              {selected === q.answerIndex ? "정답입니다." : "오답입니다."}
+            </h2>
+            <p className="confirmed-answer">
+              <strong>정답</strong> {q.options[q.answerIndex]}
+            </p>
+            <QuestionExplanation question={q} selected={selected!} />
+          </section>
+        )}
         {error && (
           <p className="error" role="alert">
             {error}
           </p>
         )}
         <div className="question-bottom">
-          <span className="hint">숫자 1–4 선택 · Enter 다음</span>
+          <span className="hint">
+            {submitted
+              ? "해설을 확인한 뒤 다음으로 이동하세요."
+              : "숫자 1–4 선택 · Enter 정답 확인"}
+          </span>
           <button
             className="primary"
             onClick={next}
             disabled={selected === null}
           >
-            {session.currentIndex === session.items.length - 1
-              ? "답안 제출"
-              : "다음 문제"}{" "}
+            {!submitted
+              ? "정답 확인"
+              : session.currentIndex === session.items.length - 1
+                ? "학습 결과 보기"
+                : "다음 문제"}{" "}
             <ArrowRight size={18} />
           </button>
         </div>
       </section>
-      <p className="center hint">정답과 해설·출처는 제출 후 확인합니다.</p>
+      <p className="center hint">정답을 확인한 문제는 답을 바꿀 수 없습니다.</p>
       {blocker.state === "blocked" && (
         <Dialog
           title="이번 학습을 종료할까요?"
@@ -778,7 +827,6 @@ function Result({ review = false }: { review?: boolean }) {
           </div>
           {(r.wrong.length ? r.wrong : s.items).map((q) => {
             const i = s.items.findIndex((x) => x.id === q.id);
-            const source = sources[q.sourceId];
             return (
               <article className="review-card" key={q.id}>
                 <div className="question-meta">
@@ -796,40 +844,8 @@ function Result({ review = false }: { review?: boolean }) {
                     <Check size={17} /> 정답: {q.options[q.answerIndex]}
                   </p>
                 </div>
-                <p>{q.explanation}</p>
-                {q.actionSteps && (
-                  <div className="work-steps">
-                    <h4>업무 처리 순서</h4>
-                    <ol>
-                      {q.actionSteps.map((step) => (
-                        <li key={step}>{step}</li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-                {q.citation && (
-                  <p className="citation">
-                    <strong>적용 근거</strong> {q.citation}
-                  </p>
-                )}
-                <a
-                  className="source-link"
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {source.publisher} · {source.title} <ExternalLink size={14} />
-                  <span className="sr-only">(새 창)</span>
-                </a>
+                <QuestionExplanation question={q} selected={s.answers[i]!} />
                 <div className="review-footer">
-                  <small>
-                    {"version" in source
-                      ? source.version
-                      : source.date
-                        ? `자료 게시 ${source.date}`
-                        : "게시일 미표기"}{" "}
-                    · 근거 확인 {q.evidenceCheckedAt}
-                  </small>
                   <label>
                     <input
                       type="checkbox"

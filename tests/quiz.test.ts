@@ -7,6 +7,9 @@ import {
   selectionPlan,
   conceptCount,
   loadHistory,
+  selectAnswer,
+  submitAnswer,
+  advanceQuestion,
 } from "../src/domain";
 import {
   pool,
@@ -17,6 +20,68 @@ import {
 } from "../src/data";
 import { terminologyDefinitions } from "../src/terminology-content";
 describe("문제은행과 출제", () => {
+  it("선택·정답 확인·다음 이동을 분리하고 확정 답안을 변경하지 않는다", () => {
+    const s = createSession("destroyer", 5);
+    expect(submitAnswer(s)).toBe(s);
+    expect(advanceQuestion(s)).toBe(s);
+    const chosen = selectAnswer(s, (s.items[0].answerIndex + 1) % 4);
+    expect(chosen.submitted[0]).toBe(false);
+    expect(advanceQuestion(chosen)).toBe(chosen);
+    const confirmed = submitAnswer(chosen);
+    expect(confirmed.currentIndex).toBe(0);
+    expect(validateSession(confirmed)).toEqual(confirmed);
+    expect(selectAnswer(confirmed, s.items[0].answerIndex)).toBe(confirmed);
+    const next = advanceQuestion(confirmed);
+    expect(next.currentIndex).toBe(1);
+    expect(next.submitted[1]).toBe(false);
+    expect(grade(next).correct).toBe(0);
+    expect(validateSession(next)).not.toBeNull();
+  });
+  it("마지막 문항도 정답 확인 후 결과로 이동할 때만 완료한다", () => {
+    let s = createSession("common-terms", 1, ["q-term-need-proposal"]);
+    s = submitAnswer(selectAnswer(s, s.items[0].answerIndex));
+    expect(s.completedAt).toBeUndefined();
+    s = advanceQuestion(s);
+    expect(s.completedAt).toBeTruthy();
+    expect(validateSession(s)).not.toBeNull();
+    expect(grade(s).score).toBe(100);
+  });
+  it("기존 v2의 지난 답안만 확정하고 손상된 확인 상태는 거부한다", () => {
+    const s = createSession("frigate", 5);
+    const { submitted: _, ...legacy } = s;
+    legacy.answers[0] = 0;
+    legacy.currentIndex = 1;
+    expect(validateSession(legacy)?.submitted).toEqual([
+      true,
+      false,
+      false,
+      false,
+      false,
+    ]);
+    expect(validateSession({ ...s, submitted: [true] })).toBeNull();
+    expect(
+      validateSession({
+        ...s,
+        submitted: [true, false, false, false, false],
+        answers: [null, null, null, null, null],
+      }),
+    ).toBeNull();
+    expect(validateSession({ ...s, currentIndex: 1 })).toBeNull();
+  });
+  it("섞인 용어 보기에도 해당 용어의 비교 해설을 연결한다", () => {
+    const s = createSession("common-terms", 20);
+    for (const q of s.items) {
+      for (const option of q.options) {
+        const def = terminologyDefinitions.find(
+          (entry) => entry.term === option,
+        )!;
+        expect(
+          q.optionExplanations?.find((entry) => entry.option === option)
+            ?.explanation,
+        ).toBe(def.explanation);
+      }
+    }
+  });
   it("기존 완료 기록을 새 버전에서도 보존한다", () => {
     const previous = {
       id: "previous",

@@ -18,11 +18,12 @@ const sessionSchema = z.object({
   retry: z.boolean(),
   items: z.array(questionSchema).min(1).max(20),
   answers: z.array(z.number().int().min(0).max(3).nullable()),
+  submitted: z.array(z.boolean()).optional(),
   currentIndex: z.number().int().min(0),
   startedAt: z.string().datetime(),
   completedAt: z.string().datetime().optional(),
 });
-export type Session = z.infer<typeof sessionSchema>;
+export type Session = z.infer<typeof sessionSchema> & { submitted: boolean[] };
 export type History = {
   id: string;
   unitId: UnitId;
@@ -132,6 +133,7 @@ export function createSession(
     retry: !!retryIds,
     items,
     answers: Array(count).fill(null),
+    submitted: Array(count).fill(false),
     currentIndex: 0,
     startedAt: new Date().toISOString(),
   };
@@ -139,15 +141,35 @@ export function createSession(
 export function validateSession(value: unknown): Session | null {
   const p = sessionSchema.safeParse(value);
   if (!p.success) return null;
-  const s = p.data;
+  // Migrate earlier v2 sessions: passed questions were submitted, while the
+  // current selection remains editable until the learner confirms it.
+  const s: Session = {
+    ...p.data,
+    submitted:
+      p.data.submitted ??
+      p.data.items.map(
+        (_, i) => !!p.data.completedAt || i < p.data.currentIndex,
+      ),
+  };
   if (
     s.currentIndex >= s.items.length ||
     s.answers.length !== s.items.length ||
+    s.submitted.length !== s.items.length ||
     new Set(s.items.map((q) => q.id)).size !== s.items.length
   )
     return null;
-  if (s.completedAt && s.answers.some((a) => a === null)) return null;
-  if (s.answers.slice(0, s.currentIndex).some((a) => a === null)) return null;
+  if (s.completedAt && s.submitted.some((submitted) => !submitted)) return null;
+  if (s.submitted.some((submitted, i) => submitted && s.answers[i] === null))
+    return null;
+  if (s.submitted.slice(0, s.currentIndex).some((submitted) => !submitted))
+    return null;
+  if (
+    !s.completedAt &&
+    s.answers.slice(s.currentIndex + 1).some((a) => a !== null)
+  )
+    return null;
+  if (!s.completedAt && s.submitted.slice(s.currentIndex + 1).some(Boolean))
+    return null;
   for (const q of s.items) {
     const original = questions.find((x) => x.id === q.id);
     if (
@@ -168,6 +190,8 @@ export function validateSession(value: unknown): Session | null {
       q.unitId !== original.unitId ||
       q.sourceId !== original.sourceId ||
       q.explanation !== original.explanation ||
+      JSON.stringify(q.optionExplanations) !==
+        JSON.stringify(original.optionExplanations) ||
       q.scenario !== original.scenario ||
       q.citation !== original.citation ||
       JSON.stringify(q.actionSteps) !== JSON.stringify(original.actionSteps)
@@ -175,6 +199,36 @@ export function validateSession(value: unknown): Session | null {
       return null;
   }
   return s;
+}
+export function selectAnswer(s: Session, answer: number): Session {
+  if (
+    s.completedAt ||
+    s.submitted[s.currentIndex] ||
+    !Number.isInteger(answer) ||
+    answer < 0 ||
+    answer > 3
+  )
+    return s;
+  const answers = [...s.answers];
+  answers[s.currentIndex] = answer;
+  return { ...s, answers };
+}
+export function submitAnswer(s: Session): Session {
+  if (
+    s.completedAt ||
+    s.submitted[s.currentIndex] ||
+    s.answers[s.currentIndex] === null
+  )
+    return s;
+  const submitted = [...s.submitted];
+  submitted[s.currentIndex] = true;
+  return { ...s, submitted };
+}
+export function advanceQuestion(s: Session): Session {
+  if (s.completedAt || !s.submitted[s.currentIndex]) return s;
+  return s.currentIndex < s.items.length - 1
+    ? { ...s, currentIndex: s.currentIndex + 1 }
+    : { ...s, completedAt: new Date().toISOString() };
 }
 export function loadSession(): Session | null {
   try {

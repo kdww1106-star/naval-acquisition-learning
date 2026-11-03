@@ -1,3 +1,4 @@
+import { confirmAndContinue } from "../helpers";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 test("홈·설정·문제·결과·절차 맵의 WCAG AA 자동 점검", async ({ page }) => {
@@ -26,9 +27,7 @@ test("홈·설정·문제·결과·절차 맵의 WCAG AA 자동 점검", async (
   await check();
   for (let i = 0; i < 5; i++) {
     await page.getByRole("radio").first().check();
-    await page
-      .getByRole("button", { name: i === 4 ? "답안 제출" : "다음 문제" })
-      .click();
+    await confirmAndContinue(page);
   }
   await check();
   await page.goto("/map");
