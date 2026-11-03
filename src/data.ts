@@ -2,6 +2,7 @@ import { z } from "zod";
 import { humanReviews, retiredIds } from "./reviews";
 import { explanationAdditions } from "./explanations";
 import { additionalRows, additionalSources } from "./content-expansion";
+import { rokNavyQuestions, rokNavySources } from "./rok-navy-content";
 import {
   businessQuestions,
   businessSources,
@@ -187,6 +188,7 @@ export const sources = {
   ...additionalSources,
   ...businessSources,
   ...terminologySources,
+  ...rokNavySources,
 };
 export const topics = [
   "역할·임무",
@@ -326,7 +328,7 @@ const rows: Partial<Record<UnitId, Row[]>> = {
     ],
     [
       "계약·사업관리",
-      "IPT 구성에 적절한 설명은?",
+      "IPT 구성에 가장 적절한 설명은?",
       "예산·품질·기술관리 등 기능별 전문 인력",
       "함정 운전 인력만",
       "홍보 인력만",
@@ -951,13 +953,15 @@ export const questions: Question[] = [
   ...businessQuestions,
   ...shipScenarios,
   ...terminologyQuestions,
+  ...rokNavyQuestions,
 ].map((q) => {
   const review = humanReviews[q.id];
   return {
     ...q,
-    explanation: explanationAdditions[q.concept]
-      ? `${q.explanation}\n\n${explanationAdditions[q.concept]}`
-      : q.explanation,
+    explanation:
+      !q.id.startsWith("q-rok-") && explanationAdditions[q.concept]
+        ? `${q.explanation}\n\n${explanationAdditions[q.concept]}`
+        : q.explanation,
     status:
       retiredIds.includes(q.id) ||
       (q.unitId === "common-process" && !q.id.startsWith("q-business-"))
