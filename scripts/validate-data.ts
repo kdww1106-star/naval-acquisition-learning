@@ -49,11 +49,7 @@ for (const s of Object.values(sources)) {
     ![
       "dapa.go.kr",
       "www.dapa.go.kr",
-      "www.navy.mil",
-      "www.surflant.usff.navy.mil",
-      "www.surfpac.navy.mil",
-      "www.csp.navy.mil",
-      "www.usff.navy.mil",
+      "www.navy.mil.kr",
       "www.royalnavy.mod.uk",
       "www.gov.uk",
       "www.hanwha.com",
@@ -73,7 +69,7 @@ for (const u of units) {
   if (isScenarioUnit(u.id) && available.some((q) => !q.scenario))
     throw Error(`공통 상황형 누락 ${u.id}`);
   console.log(
-    `${u.title}: 공개 ${pool(u.id).length} / 고유 ${pool(u.id).filter((q) => q.unitId === u.id).length}`,
+    `${u.title}: 공개 ${available.length} / 고유 개념 ${new Set(available.map((q) => q.concept)).size}`,
   );
 }
 const termWords = new Set(terminologyDefinitions.map((entry) => entry.term));
